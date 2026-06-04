@@ -10,13 +10,17 @@ Below is the design flow of how client requests are accepted, chunked, queued, r
 
 ```mermaid
 graph TD
-    Client[Client / SDK] -->|API Request| API[FastAPI Web Server]
-    API -->|Read/Write Metadata| DB[(PostgreSQL)]
-    API -->|Enqueue Chunks| Redis[(Redis Broker)]
-    Redis -->|Tasks| Worker[Celery Worker]
-    Worker -->|Rate Limit Token Check| Redis
-    Worker -->|Write Status/Results/Failures| DB
-    Worker -->|Analyze Text| Vendor[Simulated Vendor API]
+  Client[Client / SDK] -->|API Request| API[FastAPI Web Server]
+  API -->|Store Batch + Items| DB[(PostgreSQL)]
+  API -->|Enqueue Chunk Tasks| Redis[(Redis Broker)]
+
+  Redis --> Worker[Celery Worker]
+
+  Worker -->|Fetch Items| DB
+  Worker -->|Rate Limit Token Bucket| Redis
+  Worker -->|Analyze Text| Vendor[Simulated Vendor API]
+  Worker -->|Update Status / Results| DB
+  Worker -->|Retry with Backoff| Worker
 ```
 
 ---
